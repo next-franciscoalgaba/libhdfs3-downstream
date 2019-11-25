@@ -26,11 +26,11 @@ die() {
 }
 
 install_depends() {
-    apt-get install -qq software-properties-common || die "cannot install software-properties-common"
-    add-apt-repository -y ppa:ubuntu-toolchain-r/test || die "cannot add repository"
     apt-get update || die "cannot update repository"
     apt-get install -qq \
+        software-properties-common \
         dpkg-dev debhelper g++ cmake libxml2-dev uuid-dev protobuf-compiler \
+        libgtest-dev libkrb5-dev libgsasl7-dev \
         libprotobuf-dev libgsasl7-dev libkrb5-dev libboost-all-dev || die "cannot install dependencies"
 }
 
