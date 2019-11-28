@@ -30,8 +30,6 @@
 #include "EncryptionZoneInfo.h"
 #include "Permission.h"
 #include "XmlConfig.h"
-#include "server/EncryptionKey.h"
-#include "common/SessionConfig.h"
 
 #include <vector>
 
@@ -48,8 +46,6 @@ public:
      * @param conf hdfs configuration
      */
     FileSystem(const Config & conf);
-    
-    FileSystem(const Config & conf, const char * effective_user);
 
     /**
      * Copy construct of FileSystem
@@ -71,10 +67,6 @@ public:
      */
     void connect();
 
-    // TODO
-    std::string effective_user;
-
-
     /**
      * Connect to hdfs
      * @param uri hdfs connection uri, hdfs://host:port
@@ -94,8 +86,6 @@ public:
      * disconnect from hdfs
      */
     void disconnect();
-
-    Internal::EncryptionKey getEncryptionKeys();
 
     /**
      * To get default number of replication.
@@ -220,14 +210,6 @@ public:
     bool rename(const char * src, const char * dst);
 
     /**
-     * To move the blocks from a list of files into a new file.
-     * @param trg new file path.
-     * @param srcs list of source file paths.
-     * @return return true if success.
-     */
-    void concat(const char * src, const char **srcs);
-
-    /**
      * To set working directory.
      * @param path new working directory.
      */
@@ -325,11 +307,6 @@ public:
     */
     std::vector<EncryptionZoneInfo> listAllEncryptionZoneItems();
 
-
-    /*
-     * get session configuration
-     */
-    Internal::SessionConfig & getConf();
 
 private:
     Config conf;

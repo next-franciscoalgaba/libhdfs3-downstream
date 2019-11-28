@@ -39,6 +39,15 @@
 #define EINTERNAL 255
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#define DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#define DEPRECATED __declspec(deprecated)
+#else
+#pragma message("WARNING: DEPRECATED is not supported by the compiler.")
+#define DEPRECATED
+#endif
+
 /** All APIs set errno to meaningful values */
 
 #ifdef __cplusplus
@@ -148,7 +157,7 @@ hdfsFS hdfsConnectNewInstance(const char * nn, tPort port);
  * @param bld    The HDFS builder
  * @return       Returns a handle to the filesystem, or NULL on error.
  */
-hdfsFS hdfsBuilderConnect(struct hdfsBuilder * bld, const char * effective_user=NULL);
+hdfsFS hdfsBuilderConnect(struct hdfsBuilder * bld);
 
 /**
  * Create an HDFS builder.
@@ -360,6 +369,18 @@ tOffset hdfsTell(hdfsFS fs, hdfsFile file);
 tSize hdfsRead(hdfsFS fs, hdfsFile file, void * buffer, tSize length);
 
 /**
+  * hdfsPread - Positional read of data from an open file.
+  * @param fs The configured filesystem handle.
+  * @param file The file handle.
+  * @param offset Position from which to read
+  * @param buffer The buffer to copy read bytes into.
+  * @param length The length of the buffer.
+  * @return      See hdfsRead
+  */
+tSize hdfsPread(hdfsFS fs, hdfsFile file, tOffset offset,
+                void * buffer, tSize length);
+
+/**
  * hdfsWrite - Write data into an open file.
  * @param fs The configured filesystem handle.
  * @param file The file handle.
@@ -387,13 +408,24 @@ int hdfsFlush(hdfsFS fs, hdfsFile file);
 int hdfsHFlush(hdfsFS fs, hdfsFile file);
 
 /**
+ * This function is deprecated. Please use hdfsHSync instead.
+ *
  * hdfsSync - Flush out and sync the data in client's user buffer. After the
  * return of this call, new readers will see the data.
  * @param fs configured filesystem handle
  * @param file file handle
  * @return 0 on success, -1 on error and sets errno
  */
-int hdfsSync(hdfsFS fs, hdfsFile file);
+DEPRECATED int hdfsSync(hdfsFS fs, hdfsFile file);
+
+/**
+ * hdfsHSync - Flush out and sync the data in client's user buffer. After the
+ * return of this call, new readers will see the data.
+ * @param fs configured filesystem handle
+ * @param file file handle
+ * @return 0 on success, -1 on error and sets errno
+ */
+int hdfsHSync(hdfsFS fs, hdfsFile file);
 
 /**
  * hdfsAvailable - Number of bytes that can be read from this
@@ -445,20 +477,6 @@ int hdfsDelete(hdfsFS fs, const char * path, int recursive);
 int hdfsRename(hdfsFS fs, const char * oldPath, const char * newPath);
 
 /**
- * hdfsConcat - Concatenate (move) the blocks in a list of source
- * files into a single file deleting the source files.  Source
- * files must all have the same block size and replicationand all
- * but the last source file must be an integer number of full
- * blocks long.  The source files are deleted on successful
- * completion.
- * @param fs The configured filesystem handle.
- * @param trg The path of target (resulting) file
- * @param scrs A list of paths to source files
- * @return Returns 0 on success, -1 on error.
- */
-int hdfsConcat(hdfsFS fs, const char * trg, const char ** srcs);
-
-/**
  * hdfsGetWorkingDirectory - Get the current working directory for
  * the given filesystem.
  * @param fs The configured filesystem handle.
@@ -485,16 +503,6 @@ int hdfsSetWorkingDirectory(hdfsFS fs, const char * path);
  * @return Returns 0 on success, -1 on error.
  */
 int hdfsCreateDirectory(hdfsFS fs, const char * path);
-
-/**
- * hdfsCreateDirectoryEx - Make the given file with extended options
- * @param fs The configured filesystem handle.
- * @param path The path of the directory.
- * @param mode The permissions for created file and directories.
- * @param createParents Controls whether to create all non-existent parent directories or not
- * @return Returns 0 on success, -1 on error.
- */
-int hdfsCreateDirectoryEx(hdfsFS fs, const char * path, short mode, int createParents);
 
 /**
  * hdfsSetReplication - Set the replication of the specified

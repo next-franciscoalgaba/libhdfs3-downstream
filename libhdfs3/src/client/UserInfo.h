@@ -40,7 +40,7 @@ public:
     }
 
     explicit UserInfo(const std::string & u) :
-        krbUser(u) {
+        effectiveUser(u) {
     }
 
     const std::string & getRealUser() const {
@@ -51,33 +51,24 @@ public:
         this->realUser = user;
     }
 
-    bool hasEffectiveUser() const {
-        if (effectiveUser.empty())
-            return false;
-        return true;
-    }
-  
     const std::string & getEffectiveUser() const {
-        if (! effectiveUser.empty())
-            return effectiveUser;
-        return krbUser.getName();
+        return effectiveUser.getName();
     }
 
     void setEffectiveUser(const std::string & effectiveUser) {
-        this->effectiveUser = effectiveUser;
+        this->effectiveUser = KerberosName(effectiveUser);
     }
 
     std::string getKrbName() const {
-        return krbUser.getName();
-    }
+        return effectiveUser.getName();
 
+    }
     std::string getPrincipal() const {
-        return krbUser.getPrincipal();
+        return effectiveUser.getPrincipal();
     }
 
     bool operator ==(const UserInfo & other) const {
         return realUser == other.realUser
-               && krbUser == other.krbUser
                && effectiveUser == other.effectiveUser;
     }
 
@@ -102,10 +93,9 @@ public:
     static UserInfo LocalUser();
 
 private:
-    KerberosName krbUser;
+    KerberosName effectiveUser;
     std::map<std::pair<std::string, std::string>, Token> tokens;
     std::string realUser;
-    std::string effectiveUser;
 };
 
 }

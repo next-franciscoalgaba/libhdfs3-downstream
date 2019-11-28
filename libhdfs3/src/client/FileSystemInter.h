@@ -39,7 +39,6 @@
 #include "Unordered.h"
 #include "UserInfo.h"
 #include "XmlConfig.h"
-#include "server/EncryptionKey.h"
 
 namespace Hdfs {
 
@@ -90,8 +89,6 @@ public:
      * disconnect from hdfs
      */
     virtual void disconnect() = 0;
-
-    virtual EncryptionKey getEncryptionKeys() = 0;
 
     /**
      * To get default number of replication.
@@ -217,14 +214,6 @@ public:
      * @return return true if success.
      */
     virtual bool rename(const char * src, const char * dst) = 0;
-
-    /**
-     * To move blocks from set of source files to a new target file.
-     * @param trg target file name
-     * @param srcs NULL pointer terminated list of source files
-     * @return return true if success.
-     */
-    virtual void concat(const char * trg, const char ** srcs) = 0;
 
     /**
      * To set working directory.
@@ -461,7 +450,7 @@ public:
      * Get the configuration used in filesystem.
      * @return return the configuration instance.
      */
-    virtual SessionConfig & getConf() = 0;
+    virtual const SessionConfig & getConf() const = 0;
 
     /**
      * Get the user used in filesystem.

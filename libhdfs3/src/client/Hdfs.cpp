@@ -403,7 +403,7 @@ hdfsFS hdfsConnectNewInstance(const char * host, tPort port) {
     return retVal;
 }
 
-hdfsFS hdfsBuilderConnect(struct hdfsBuilder * bld, const char * effective_user) {
+hdfsFS hdfsBuilderConnect(struct hdfsBuilder * bld) {
     PARAMETER_ASSERT(bld && !bld->nn.empty(), NULL, EINVAL);
     Hdfs::Internal::SessionConfig conf(*bld->conf);
     std::string uri;
@@ -475,7 +475,7 @@ hdfsFS hdfsBuilderConnect(struct hdfsBuilder * bld, const char * effective_user)
     xmlFreeURI(uriobj);
 
     try {
-        fs = new FileSystem(*bld->conf, effective_user);
+        fs = new FileSystem(*bld->conf);
 
         if (!bld->token.empty()) {
             fs->connect(uri.c_str(), NULL, bld->token.c_str());
@@ -668,7 +668,7 @@ hdfsFile hdfsOpenFile(hdfsFS fs, const char * path, int flags, int bufferSize,
         } else {
             file->setInput(true);
             is = new InputStream;
-            is->open(fs->getFilesystem(), path, fs->getFilesystem().getConf().getEnableVerify());
+            is->open(fs->getFilesystem(), path, true);
             file->setStream(is);
         }
 
@@ -791,6 +791,23 @@ tSize hdfsRead(hdfsFS fs, hdfsFile file, void * buffer, tSize length) {
     return -1;
 }
 
+tSize hdfsPread(hdfsFS fs, hdfsFile file, tOffset pos,
+                void * buffer, tSize length) {
+    PARAMETER_ASSERT(fs && file && pos >= 0 && buffer && length > 0, -1, EINVAL);
+    PARAMETER_ASSERT(file->isInput(), -1, EINVAL);
+
+    tOffset oldPos = hdfsTell(fs, file);
+    if (oldPos < 0 || hdfsSeek(fs, file, pos) < 0) {
+        return -1;
+    }
+
+    tSize done = hdfsRead(fs, file, buffer, length);
+    // hdfsRead failure followed by hdfsSeek failure would cause
+    // hdfsGetLastError to only report the latter one, since there is
+    // no exception chaining.
+    return hdfsSeek(fs, file, oldPos) == 0 ? done : -1;
+}
+
 tSize hdfsWrite(hdfsFS fs, hdfsFile file, const void * buffer, tSize length) {
     PARAMETER_ASSERT(fs && file && buffer && length > 0, -1, EINVAL);
     PARAMETER_ASSERT(!file->isInput(), -1, EINVAL);
@@ -811,12 +828,12 @@ tSize hdfsWrite(hdfsFS fs, hdfsFile file, const void * buffer, tSize length) {
 }
 
 int hdfsFlush(hdfsFS fs, hdfsFile file) {
-    PARAMETER_ASSERT(fs && file && file, -1, EINVAL);
+    PARAMETER_ASSERT(fs && file, -1, EINVAL);
     return hdfsHFlush(fs, file);
 }
 
 int hdfsHFlush(hdfsFS fs, hdfsFile file) {
-    PARAMETER_ASSERT(fs && file && file, -1, EINVAL);
+    PARAMETER_ASSERT(fs && file, -1, EINVAL);
     PARAMETER_ASSERT(!file->isInput(), -1, EINVAL);
 
     try {
@@ -834,7 +851,11 @@ int hdfsHFlush(hdfsFS fs, hdfsFile file) {
 }
 
 int hdfsSync(hdfsFS fs, hdfsFile file) {
-    PARAMETER_ASSERT(fs && file && file, -1, EINVAL);
+    return hdfsHSync(fs, file);
+}
+
+int hdfsHSync(hdfsFS fs, hdfsFile file) {
+    PARAMETER_ASSERT(fs && file, -1, EINVAL);
     PARAMETER_ASSERT(!file->isInput(), -1, EINVAL);
 
     try {
@@ -852,7 +873,7 @@ int hdfsSync(hdfsFS fs, hdfsFile file) {
 }
 
 int hdfsAvailable(hdfsFS fs, hdfsFile file) {
-    PARAMETER_ASSERT(fs && file && file, -1, EINVAL);
+    PARAMETER_ASSERT(fs && file, -1, EINVAL);
     PARAMETER_ASSERT(file->isInput(), -1, EINVAL);
 
     try {
@@ -921,26 +942,6 @@ int hdfsRename(hdfsFS fs, const char * oldPath, const char * newPath) {
     return -1;
 }
 
-int hdfsConcat(hdfsFS fs, const char *trg, const char **srcs) {
-    PARAMETER_ASSERT(fs && trg && srcs && strlen(trg) > 0, -1, EINVAL);
-    for (const char **p = srcs; *p != NULL; ++p) {
-        PARAMETER_ASSERT(strlen(*p) > 0, -1, EINVAL);
-    }
-
-    try {
-        fs->getFilesystem().concat(trg, srcs);
-        return 0;
-    } catch (const std::bad_alloc & e) {
-        SetErrorMessage("Out of memory");
-        errno = ENOMEM;
-    } catch (...) {
-        SetLastException(Hdfs::current_exception());
-        handleException(Hdfs::current_exception());
-    }
-
-    return -1;
-}
-
 char * hdfsGetWorkingDirectory(hdfsFS fs, char * buffer, size_t bufferSize) {
     PARAMETER_ASSERT(fs && buffer && bufferSize > 0, NULL, EINVAL);
 
@@ -982,25 +983,6 @@ int hdfsCreateDirectory(hdfsFS fs, const char * path) {
 
     try {
         return fs->getFilesystem().mkdirs(path, 0755) ? 0 : -1;
-    } catch (const std::bad_alloc & e) {
-        SetErrorMessage("Out of memory");
-        errno = ENOMEM;
-    } catch (...) {
-        SetLastException(Hdfs::current_exception());
-        handleException(Hdfs::current_exception());
-    }
-
-    return -1;
-}
-
-int hdfsCreateDirectoryEx(hdfsFS fs, const char * path, short mode, int createParents) {
-    PARAMETER_ASSERT(fs && path && strlen(path) > 0, -1, EINVAL);
-
-    try {
-        if (createParents)
-            return fs->getFilesystem().mkdirs(path, mode) ? 0 : -1;
-        else
-            return fs->getFilesystem().mkdir(path, mode) ? 0 : -1;
     } catch (const std::bad_alloc & e) {
         SetErrorMessage("Out of memory");
         errno = ENOMEM;

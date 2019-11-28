@@ -140,14 +140,6 @@ FileSystem::FileSystem(const Config & conf) :
     conf(conf), impl(NULL) {
 }
 
-FileSystem::FileSystem(const Config & conf, const char * euser) :
-    conf(conf), impl(NULL) {
-        if (euser == NULL)
-            effective_user = "";
-        else
-            effective_user = euser;
-}
-
 FileSystem::FileSystem(const FileSystem & other) :
     conf(other.conf), impl(NULL) {
     if (other.impl) {
@@ -161,7 +153,6 @@ FileSystem & FileSystem::operator =(const FileSystem & other) {
     }
 
     conf = other.conf;
-    effective_user = other.effective_user;
 
     if (impl) {
         delete impl;
@@ -184,12 +175,6 @@ FileSystem::~FileSystem() {
     }
 }
 
-EncryptionKey FileSystem::getEncryptionKeys() {
-    if (impl)
-        return impl->filesystem->getEncryptionKeys();
-    return EncryptionKey();
-}
-
 void FileSystem::connect() {
     Internal::SessionConfig sconf(conf);
     connect(sconf.getDefaultUri().c_str(), NULL, NULL);
@@ -204,13 +189,12 @@ void FileSystem::connect(const char * uri) {
 }
 
 static FileSystemWrapper * ConnectInternal(const char * uri,
-      const std::string & principal, const Token * token, Config & conf,
-      const char * effective_user=NULL) {
+        const std::string & principal, const Token * token, Config & conf) {
     if (NULL == uri || 0 == strlen(uri)) {
         THROW(InvalidParameter, "Invalid HDFS uri.");
     }
 
-    FileSystemKey key(uri, principal.c_str(), effective_user);
+    FileSystemKey key(uri, principal.c_str());
 
     if (token) {
         key.addToken(*token);
@@ -242,10 +226,7 @@ void FileSystem::connect(const char * uri, const char * username, const char * t
             Token t;
             t.fromString(token);
             principal = ExtractPrincipalFromToken(t);
-            const char * euser = NULL;
-            if (!effective_user.empty())
-                euser = effective_user.c_str();
-            impl = ConnectInternal(uri, principal, &t, conf, euser);         
+            impl = ConnectInternal(uri, principal, &t, conf);
             impl->filesystem->connect();
             return;
         } else if (username) {
@@ -256,10 +237,7 @@ void FileSystem::connect(const char * uri, const char * username, const char * t
             principal = ExtractPrincipalFromTicketCache(sconf.getKerberosCachePath());
         }
 
-        const char * euser = NULL;
-        if (!effective_user.empty())
-            euser = effective_user.c_str();
-        impl = ConnectInternal(uri, principal, NULL, conf, euser);
+        impl = ConnectInternal(uri, principal, NULL, conf);
         impl->filesystem->connect();
     } catch (...) {
         delete impl;
@@ -490,20 +468,6 @@ bool FileSystem::rename(const char * src, const char * dst) {
 }
 
 /**
- * To move blocks from a list of files to a new file.
- * @param trg new file path
- * @param srcs list of source files
- * @return return true if success.
- */
-void FileSystem::concat(const char * trg, const char **srcs) {
-    if (!impl) {
-        THROW(HdfsIOException, "FileSystem: not connected.");
-    }
-
-    impl->filesystem->concat(trg, srcs);
-}
-
-/**
  * To set working directory.
  * @param path new working directory.
  */
@@ -670,10 +634,6 @@ std::vector<EncryptionZoneInfo> FileSystem::listAllEncryptionZoneItems() {
     }
 
     return impl->filesystem->listAllEncryptionZoneItems();
-}
-
-Internal::SessionConfig & FileSystem::getConf() {
-    return impl->filesystem->getConf();
 }
 
 }

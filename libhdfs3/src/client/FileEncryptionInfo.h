@@ -29,7 +29,7 @@ namespace Hdfs {
 class FileEncryptionInfo {
 public:
     FileEncryptionInfo() : 
-		suite(0), cryptoProtocolVersion(0) {
+		cryptoProtocolVersion(0), suite(0){
     }
 
     int getSuite() const {
@@ -81,8 +81,8 @@ public:
     }
 
 private:
-    int suite;
     int cryptoProtocolVersion;
+    int suite;
     std::string key;
     std::string iv;
     std::string keyName;

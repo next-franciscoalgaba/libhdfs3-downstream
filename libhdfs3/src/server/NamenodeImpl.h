@@ -218,8 +218,6 @@ public:
     void cancelDelegationToken(const Token & token)
     /*throws IOException*/;
 
-    EncryptionKey getEncryptionKeys();
-
     bool createEncryptionZone(const std::string & src, const std::string & keyName);
     /* throws HdfsIOException If an I/O error occurred */
 

@@ -181,14 +181,6 @@ void FileSystemImpl::connect() {
      * To test if the connection is ok
      */
     getFsStats();
-    if (sconf.getEncryptedDatanode())
-        nn->getEncryptionKeys();
-}
-
-EncryptionKey FileSystemImpl::getEncryptionKeys() {
-    if (sconf.getEncryptedDatanode())
-        return nn->getEncryptionKeys();
-    return EncryptionKey();
 }
 
 /**
@@ -499,37 +491,6 @@ bool FileSystemImpl::rename(const char * src, const char * dst) {
     }
 
     return nn->rename(getStandardPath(src), getStandardPath(dst));
-}
-
-/**
- * To move the blocks from a list of source files into a new target file
- * @param trg the path to the new file
- * @param srcs the list of source file paths
- * @return return true if success.
- */
-
-void FileSystemImpl::concat(const char * trg, const char ** srcs) {
-    std::vector<std::string> srcVector;
-
-    if (!nn) {
-        THROW(HdfsIOException, "FileSystemImpl: not connected.");
-    }
-
-    if (NULL == trg || !strlen(trg)) {
-        THROW(InvalidParameter, "Invalid input: trg should not be empty");
-    }
-
-    if (NULL == srcs) {
-        THROW(InvalidParameter, "Invalid input: srcs should not be NULL");
-    }
-
-    for (const char **p = srcs; *p != NULL; ++p) {
-        if (strlen(*p) == 0) {
-            THROW(InvalidParameter, "Invalid input: srcs should have an empty path");
-        }
-        srcVector.push_back(getStandardPath(*p));
-    }
-    nn->concat(getStandardPath(trg), srcVector);
 }
 
 /**

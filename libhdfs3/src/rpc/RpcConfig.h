@@ -41,7 +41,7 @@ public:
         tcpNoDelay = conf.isRpcTcpNoDelay();
         lingerTimeout = conf.getRpcSocketLingerTimeout();
         rpcTimeout = conf.getRpcTimeout();
-        protection = conf.getRpcProtection();
+        rpcMaxLength = conf.getRpcMaxDataLength();
     }
 
     size_t hash_value() const;
@@ -118,8 +118,12 @@ public:
         this->rpcTimeout = rpcTimeout;
     }
 
-    int getProtection() const {
-        return protection;
+    int getRpcMaxLength() const {
+        return rpcMaxLength;
+    }
+
+    void setRpcMaxLength(int rpcTimeout) {
+        this->rpcMaxLength = rpcTimeout;
     }
 
     bool operator ==(const RpcConfig & other) const {
@@ -132,7 +136,7 @@ public:
                && this->tcpNoDelay == other.tcpNoDelay
                && this->lingerTimeout == other.lingerTimeout
                && this->rpcTimeout == other.rpcTimeout
-               && this->protection == other.protection;
+               && this->rpcMaxLength == other.rpcMaxLength;
     }
 
 private:
@@ -144,8 +148,8 @@ private:
     int maxRetryOnConnect;
     int lingerTimeout;
     int rpcTimeout;
+    int rpcMaxLength;
     bool tcpNoDelay;
-    int protection;
 };
 
 }

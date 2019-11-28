@@ -59,30 +59,6 @@ void NamenodeImpl::invoke(const RpcCall & call) {
     channel.close(false);
 }
 
-EncryptionKey NamenodeImpl::getEncryptionKeys()
-{
-    try {
-        GetDataEncryptionKeyRequestProto request;
-        GetDataEncryptionKeyResponseProto response;
-
-        invoke(RpcCall(true, "getDataEncryptionKey", &request, &response));
-        EncryptionKey key;
-        key.setKeyId(response.dataencryptionkey().keyid());
-        key.setExpiryDate(response.dataencryptionkey().expirydate());
-        key.setBlockPoolId(response.dataencryptionkey().blockpoolid());
-        key.setNonce(response.dataencryptionkey().nonce());
-        key.setEncryptionKey(response.dataencryptionkey().encryptionkey());
-        key.setEncryptionAlgorithm(response.dataencryptionkey().encryptionalgorithm());
-        return key;
-
-    } catch (const HdfsRpcServerException & e) {
-        UnWrapper < FileNotFoundException,
-                  UnresolvedLinkException, HdfsIOException > unwrapper(e);
-        unwrapper.unwrap(__FILE__, __LINE__);
-    }
-
-}
-
 //Idempotent
 void NamenodeImpl::getBlockLocations(const std::string & src, int64_t offset,
                                      int64_t length, LocatedBlocks & lbs) /* throw (AccessControlException,
@@ -361,9 +337,9 @@ bool NamenodeImpl::rename(const std::string & src, const std::string & dst)
     }
 }
 
-void NamenodeImpl::concat(const std::string & trg,
-                          const std::vector<std::string> & srcs)
-/* throw (UnresolvedLinkException, HdfsIOException) */{
+/*void NamenodeImpl::concat(const std::string & trg,
+                          const std::vector<std::string> & srcs)  throw (UnresolvedLinkException,
+         HdfsIOException) {
     try {
         ConcatRequestProto request;
         ConcatResponseProto response;
@@ -374,7 +350,7 @@ void NamenodeImpl::concat(const std::string & trg,
         UnWrapper<UnresolvedLinkException, HdfsIOException> unwrapper(e);
         unwrapper.unwrap(__FILE__, __LINE__);
     }
-}
+}*/
 
 bool NamenodeImpl::truncate(const std::string & src, int64_t size,
                             const std::string & clientName)
